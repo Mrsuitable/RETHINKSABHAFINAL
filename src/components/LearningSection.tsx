@@ -42,9 +42,18 @@ export default function LearningSection() {
     setAiResponse('');
 
     try {
-      // Using the API key you provided. 
-      // NOTE: For a live public website, it is safer to call the Gemini API from a backend server so users cannot see your key.
-      const apiKey = "AIzaSyDw_9EFPSI9Z6_QQULnZb8QCCNZFlowGGs";
+      // 1. Try Vite environment variable (for Vercel)
+      // 2. Try process.env (for AI Studio)
+      // 3. Fallback to the provided key
+      const apiKey = 
+        (import.meta as any).env.VITE_GEMINI_API_KEY || 
+        (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined) || 
+        "AIzaSyAbe_w9su-usmEoZO0T4oyjbLJuPUY66DI";
+        
+      if (!apiKey) {
+        throw new Error("API key is missing.");
+      }
+
       const ai = new GoogleGenAI({ apiKey });
       
       const response = await ai.models.generateContent({
