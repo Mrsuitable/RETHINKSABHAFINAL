@@ -5,6 +5,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -14,10 +15,12 @@ export default function Navbar() {
   }, []);
 
   const handleSignIn = async () => {
+    setAuthError(null);
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error signing in", error);
+      setAuthError(error.message || "Failed to sign in");
     }
   };
 
@@ -51,9 +54,16 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <button onClick={handleSignIn} className="bg-indigo-600 text-white px-5 py-2 rounded-full font-medium hover:bg-indigo-700 transition-colors shadow-sm">
-                Sign In
-              </button>
+              <div className="flex flex-col items-end relative">
+                <button onClick={handleSignIn} className="bg-indigo-600 text-white px-5 py-2 rounded-full font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+                  Sign In
+                </button>
+                {authError && (
+                  <div className="absolute top-full mt-2 right-0 w-64 bg-red-50 border border-red-200 text-red-600 text-xs p-2 rounded shadow-lg z-50">
+                    {authError}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

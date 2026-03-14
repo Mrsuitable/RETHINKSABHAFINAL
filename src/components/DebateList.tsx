@@ -51,12 +51,16 @@ export default function DebateList() {
         'service_hkqjqev',
         'template_y9rf1rr',
         {
-          to_email: email, // This needs to match the variable in the EmailJS template
-          to_name: email.split('@')[0], // Optional: adds a name based on email
+          to_email: email,
+          email: email, // Added as a fallback variable name
+          user_email: email, // Added as another fallback
+          to_name: email.split('@')[0],
           debate_title: selectedDebate?.title,
           reply_to: 'rethinksabha9@gmail.com',
         },
-        'RoOYxFSt62wTUS4jV'
+        {
+          publicKey: 'RoOYxFSt62wTUS4jV',
+        }
       );
       setIsSuccess(true);
     } catch (err: any) {
