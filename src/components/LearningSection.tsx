@@ -42,7 +42,11 @@ export default function LearningSection() {
     setAiResponse('');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      // Using the API key you provided. 
+      // NOTE: For a live public website, it is safer to call the Gemini API from a backend server so users cannot see your key.
+      const apiKey = "AIzaSyDw_9EFPSI9Z6_QQULnZb8QCCNZFlowGGs";
+      const ai = new GoogleGenAI({ apiKey });
+      
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: `Act as an expert debate coach. Provide 3 strong arguments FOR and 3 strong arguments AGAINST the following topic: "${topic}". Keep it concise, structured, and use markdown formatting.`,
@@ -50,7 +54,7 @@ export default function LearningSection() {
       setAiResponse(response.text || "No response generated.");
     } catch (err: any) {
       console.error("AI Error:", err);
-      setError("Failed to get advice from the AI coach. Please try again.");
+      setError(`Error: ${err.message || "Failed to get advice from the AI coach."}`);
     } finally {
       setIsLoading(false);
     }
