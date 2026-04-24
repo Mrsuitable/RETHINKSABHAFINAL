@@ -1,31 +1,132 @@
-import { BookOpen, Search, Target, Zap, Bot, Sparkles, User } from 'lucide-react';
+import { Search, Target, Zap, Bot, Sparkles, User } from 'lucide-react';
 import { useState } from 'react';
-import { GoogleGenAI } from '@google/genai';
 import Markdown from 'react-markdown';
 
 const learningModules = [
   {
-    title: "1. Research",
+    title: '1. Research',
     icon: <Search className="h-8 w-8 text-blue-600" />,
-    description: "Learn how to find credible sources, identify biases, and gather compelling evidence to support your stance.",
-    color: "bg-blue-50",
-    borderColor: "border-blue-200"
+    description: 'Learn how to find credible sources, identify biases, and gather compelling evidence to support your stance.',
+    color: 'bg-blue-50',
+    borderColor: 'border-blue-200',
   },
   {
-    title: "2. Plan",
+    title: '2. Plan',
     icon: <Target className="h-8 w-8 text-emerald-600" />,
-    description: "Structure your arguments logically. Master the art of the opening statement, rebuttals, and closing remarks.",
-    color: "bg-emerald-50",
-    borderColor: "border-emerald-200"
+    description: 'Structure your arguments logically. Master the art of the opening statement, rebuttals, and closing remarks.',
+    color: 'bg-emerald-50',
+    borderColor: 'border-emerald-200',
   },
   {
-    title: "3. Deliver",
+    title: '3. Deliver',
     icon: <Zap className="h-8 w-8 text-amber-600" />,
-    description: "Improve your public speaking, manage your tone, and learn how to communicate your points clearly under pressure.",
-    color: "bg-amber-50",
-    borderColor: "border-amber-200"
-  }
+    description: 'Improve your public speaking, manage your tone, and learn how to communicate your points clearly under pressure.',
+    color: 'bg-amber-50',
+    borderColor: 'border-amber-200',
+  },
 ];
+
+function buildPrompt(topic: string) {
+  return [
+    'Act as an expert debate coach for students.',
+    'Use clear markdown headings and concise bullet points.',
+    `Topic: ${topic}`,
+    '',
+    'Provide:',
+    '1. A one-sentence framing of the debate',
+    '2. Three strong arguments FOR the topic',
+    '3. Three strong arguments AGAINST the topic',
+    '4. Two likely rebuttals for each side',
+    '5. A short opening statement for each side',
+    '6. Search keywords students can use to find evidence',
+  ].join('\n');
+}
+
+function detectDomain(topic: string) {
+  const text = topic.toLowerCase();
+
+  if (text.includes('school') || text.includes('education') || text.includes('classroom')) {
+    return {
+      lens: 'education',
+      forPoints: ['personalized support', 'teacher workload reduction', 'future-ready skills'],
+      againstPoints: ['overdependence', 'unequal access', 'weaker original thinking'],
+      evidence: ['student learning outcomes', 'teacher workload studies', 'digital access data'],
+    };
+  }
+
+  if (text.includes('ai') || text.includes('artificial intelligence')) {
+    return {
+      lens: 'technology',
+      forPoints: ['higher productivity', 'faster feedback', 'wider access to expert help'],
+      againstPoints: ['bias and hallucination risk', 'privacy concerns', 'loss of human judgment'],
+      evidence: ['AI accuracy studies', 'case studies', 'AI safety policies'],
+    };
+  }
+
+  if (text.includes('climate') || text.includes('energy') || text.includes('environment')) {
+    return {
+      lens: 'environment',
+      forPoints: ['long-term resilience', 'public health benefits', 'lower future costs'],
+      againstPoints: ['short-term cost', 'implementation difficulty', 'uneven local impact'],
+      evidence: ['emissions data', 'cost-benefit analysis', 'local climate impact reports'],
+    };
+  }
+
+  return {
+    lens: 'public policy',
+    forPoints: ['fairness', 'efficiency', 'long-term social value'],
+    againstPoints: ['unintended consequences', 'cost', 'implementation challenges'],
+    evidence: ['credible statistics', 'expert reports', 'real-world examples'],
+  };
+}
+
+function buildBackupCoach(topic: string) {
+  const domain = detectDomain(topic);
+
+  return [
+    '## Debate framing',
+    `This debate asks whether **${topic}** creates more public benefit than risk when applied in the real world.`,
+    '',
+    '## Strong arguments FOR',
+    `- **${domain.forPoints[0]}:** Explain who benefits immediately and why that benefit matters.`,
+    `- **${domain.forPoints[1]}:** Connect the idea to practical improvements in schools, families, or society.`,
+    `- **${domain.forPoints[2]}:** Show why the long-term benefit is worth planning for now.`,
+    '',
+    '## Strong arguments AGAINST',
+    `- **${domain.againstPoints[0]}:** Point out the main harm if the idea is used carelessly.`,
+    `- **${domain.againstPoints[1]}:** Explain who may be left out or harmed by poor implementation.`,
+    `- **${domain.againstPoints[2]}:** Argue that the risks may outweigh the promised benefits.`,
+    '',
+    '## Rebuttal strategy',
+    '- FOR side: Accept the risks, then argue for rules, training, and measured rollout.',
+    '- AGAINST side: Accept the potential benefits, then argue that safeguards are not strong enough yet.',
+    '',
+    '## Evidence to search',
+    `- ${domain.evidence[0]} for ${domain.lens}`,
+    `- ${domain.evidence[1]} from credible institutions`,
+    `- ${domain.evidence[2]} in India or your local context`,
+    '',
+    '## Closing line',
+    'The winning side is the one that proves not only what sounds ideal, but what works fairly, safely, and measurably.',
+  ].join('\n');
+}
+
+async function askPublicAI(topic: string) {
+  const prompt = buildPrompt(topic);
+  const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?seed=${Date.now()}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error('The public AI provider is busy. Please try again.');
+  }
+
+  const text = (await response.text()).trim();
+  if (!text) {
+    throw new Error('The public AI provider returned an empty response.');
+  }
+
+  return text;
+}
 
 export default function LearningSection() {
   const [topic, setTopic] = useState('');
@@ -42,28 +143,12 @@ export default function LearningSection() {
     setAiResponse('');
 
     try {
-      // 1. Try Vite environment variable (for Vercel)
-      // 2. Try process.env (for AI Studio)
-      // 3. Fallback to the provided key
-      const apiKey = 
-        (import.meta as any).env.VITE_GEMINI_API_KEY || 
-        (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined) || 
-        "AIzaSyAbe_w9su-usmEoZO0T4oyjbLJuPUY66DI";
-        
-      if (!apiKey) {
-        throw new Error("API key is missing.");
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Act as an expert debate coach. Provide 3 strong arguments FOR and 3 strong arguments AGAINST the following topic: "${topic}". Keep it concise, structured, and use markdown formatting.`,
-      });
-      setAiResponse(response.text || "No response generated.");
+      const response = await askPublicAI(topic.trim());
+      setAiResponse(response);
     } catch (err: any) {
-      console.error("AI Error:", err);
-      setError(`Error: ${err.message || "Failed to get advice from the AI coach."}`);
+      console.error('AI Error:', err);
+      setError('Live AI is busy right now, so the built-in coach generated a prep sheet below.');
+      setAiResponse(buildBackupCoach(topic.trim()));
     } finally {
       setIsLoading(false);
     }
@@ -89,14 +174,13 @@ export default function LearningSection() {
               <p className="text-slate-700 leading-relaxed">
                 {module.description}
               </p>
-              <a href="#" className="inline-flex items-center mt-6 text-indigo-600 font-medium hover:text-indigo-800">
-                Explore module <span className="ml-2">→</span>
+              <a href="#learn" className="inline-flex items-center mt-6 text-indigo-600 font-medium hover:text-indigo-800">
+                Explore module <span className="ml-2">-&gt;</span>
               </a>
             </div>
           ))}
         </div>
 
-        {/* AI Debate Coach Section */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-20">
           <div className="p-8 md:p-12">
             <div className="flex items-center mb-6">
@@ -105,10 +189,10 @@ export default function LearningSection() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-slate-900">AI Debate Coach</h3>
-                <p className="text-slate-500">Powered by Google Gemini</p>
+                <p className="text-slate-500">Powered by public no-key AI</p>
               </div>
             </div>
-            
+
             <p className="text-slate-700 mb-8 max-w-3xl">
               Need help preparing for a debate? Enter your topic below, and our AI coach will generate strong arguments for both sides to help you see the full picture and prepare your rebuttals.
             </p>
@@ -118,7 +202,7 @@ export default function LearningSection() {
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g., Artificial Intelligence will replace human jobs"
+                placeholder="e.g., Should AI be allowed in school?"
                 className="flex-grow px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
                 required
               />
@@ -139,7 +223,7 @@ export default function LearningSection() {
             </form>
 
             {error && (
-              <div className="p-4 bg-red-50 text-red-600 rounded-xl mb-6 border border-red-100">
+              <div className="p-4 bg-amber-50 text-amber-700 rounded-xl mb-6 border border-amber-100">
                 {error}
               </div>
             )}
@@ -158,7 +242,6 @@ export default function LearningSection() {
           </div>
         </div>
 
-        {/* About Me Section */}
         <div id="about" className="bg-slate-900 rounded-3xl overflow-hidden shadow-xl text-white">
           <div className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
             <div className="bg-indigo-500/20 p-6 rounded-full border border-indigo-500/30 flex-shrink-0">
@@ -168,7 +251,7 @@ export default function LearningSection() {
               <h3 className="text-2xl font-bold mb-2">About the Creator</h3>
               <h4 className="text-xl text-indigo-300 font-medium mb-4">Sunit Prakash</h4>
               <p className="text-slate-300 leading-relaxed max-w-3xl text-lg">
-                I am a 16-year-old student from India with a deep passion for building websites and a strong fascination for researching. My love for debate inspired me to create Rethink Sabha—a platform where people can engage in meaningful, structured arguments, learn from each other, and develop their critical thinking skills.
+                I am a 16-year-old student from India with a deep passion for building websites and a strong fascination for researching. My love for debate inspired me to create Rethink Sabha - a platform where people can engage in meaningful, structured arguments, learn from each other, and develop their critical thinking skills.
               </p>
             </div>
           </div>
