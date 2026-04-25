@@ -26,22 +26,6 @@ const learningModules = [
   },
 ];
 
-function buildPrompt(topic: string) {
-  return [
-    'Act as an expert debate coach for students.',
-    'Use clear markdown headings and concise bullet points.',
-    `Topic: ${topic}`,
-    '',
-    'Provide:',
-    '1. A one-sentence framing of the debate',
-    '2. Three strong arguments FOR the topic',
-    '3. Three strong arguments AGAINST the topic',
-    '4. Two likely rebuttals for each side',
-    '5. A short opening statement for each side',
-    '6. Search keywords students can use to find evidence',
-  ].join('\n');
-}
-
 function detectDomain(topic: string) {
   const text = topic.toLowerCase();
 
@@ -111,21 +95,26 @@ function buildBackupCoach(topic: string) {
   ].join('\n');
 }
 
-async function askPublicAI(topic: string) {
-  const prompt = buildPrompt(topic);
-  const url = `https://text.pollinations.ai/${encodeURIComponent(prompt)}?seed=${Date.now()}`;
-  const response = await fetch(url);
+async function askOpenAICoach(topic: string) {
+  const response = await fetch('/api/coach', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ topic }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error('The public AI provider is busy. Please try again.');
+    throw new Error(payload?.error || 'The AI coach returned an error.');
   }
 
-  const text = (await response.text()).trim();
-  if (!text) {
-    throw new Error('The public AI provider returned an empty response.');
+  if (typeof payload?.answer !== 'string' || !payload.answer.trim()) {
+    throw new Error('The AI coach returned an empty response.');
   }
 
-  return text;
+  return payload.answer.trim();
 }
 
 export default function LearningSection() {
@@ -143,11 +132,11 @@ export default function LearningSection() {
     setAiResponse('');
 
     try {
-      const response = await askPublicAI(topic.trim());
+      const response = await askOpenAICoach(topic.trim());
       setAiResponse(response);
     } catch (err: any) {
       console.error('AI Error:', err);
-      setError('Live AI is busy right now, so the built-in coach generated a prep sheet below.');
+      setError(err.message || 'AI is unavailable right now, so the built-in coach generated a prep sheet below.');
       setAiResponse(buildBackupCoach(topic.trim()));
     } finally {
       setIsLoading(false);
@@ -189,7 +178,7 @@ export default function LearningSection() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-slate-900">AI Debate Coach</h3>
-                <p className="text-slate-500">Powered by public no-key AI</p>
+                <p className="text-slate-500">Powered by OpenAI</p>
               </div>
             </div>
 

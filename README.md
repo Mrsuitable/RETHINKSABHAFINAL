@@ -19,5 +19,13 @@ View your app in AI Studio: https://ai.studio/apps/0886ccf9-73bd-43ea-9575-c3ff4
 
 ## AI Debate Coach
 
-The coach now uses a public no-key AI endpoint from the browser, with a local structured backup if the public provider is busy.
-Do not put private AI API keys in frontend source code.
+The coach calls the Vercel serverless route at `/api/coach`, which reads `OPENAI_API_KEY` from server environment variables.
+Do not put private AI API keys in frontend source code or commit them to GitHub.
+
+Required Vercel environment variable:
+
+`OPENAI_API_KEY`
+
+Optional Vercel environment variable:
+
+`OPENAI_MODEL` (defaults to `gpt-4.1-mini`)
